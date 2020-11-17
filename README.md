@@ -3,7 +3,8 @@ Human readable COVID-19 vaccine tracker.
 Based on Google Spreadsheet.
 
 # Live demo
-https://ronreiter.github.io/covid-19-vaccine-tracker/
+https://covid-19-vaccine-tracker-app.glitch.me
+
 
 Link to spreadsheet
 https://docs.google.com/spreadsheets/d/1qRN1CTiEBqQkxfOUI8_wYfXiWxoVjHKiwruslmfOqSs/edit#gid=478160310
