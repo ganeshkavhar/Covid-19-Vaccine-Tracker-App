@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html>
+<!-- 
+
+    TODO:
+    * add % of progress
+    
+ -->
+
+
+<head>
+    <title>COVID-19 Vaccine Tracker</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <!-- Global site tag (gtag.js) - Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=UA-165390394-1"></script>
+    <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+
+    gtag('config', 'UA-165390394-1');
+    </script>
+
+
+    <link rel="stylesheet" href="https://unpkg.com/buefy/dist/buefy.min.css">
+
+    <script src="https://unpkg.com/vue"></script>
+    <!-- Full bundle -->
+    <script src="https://unpkg.com/buefy/dist/buefy.min.js"></script>
+
+    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.2.0/css/all.css">
+
+</head>
+
+<body>
+    <div id="app">
+        <b-navbar type="is-primary">
+            <template slot="brand">
+                <b-navbar-item>
+                    <i class="fas fa-syringe"></i>&nbsp; COVID-19 Vaccine Tracker
+                </b-navbar-item>
+            </template>
+            <template slot="end">
+                <b-navbar-item href="https://docs.google.com/spreadsheets/d/1qRN1CTiEBqQkxfOUI8_wYfXiWxoVjHKiwruslmfOqSs/edit#gid=0" target="_blank">                
+                    Spreadsheet
+                </b-navbar-item>
+                <b-navbar-item href="https://github.com/ronreiter/covid-19-vaccine-tracker" target="_blank">                
+                    GitHub
+                </b-navbar-item>
+            </template>
+        </b-navbar>
+
+        <div class="columns">
+
+        <aside class="column is-2 menu section" style="overflow-y: scroll; height: 95vh">
+            <p class="menu-label">All Vaccinations</p>
+            <ul class="menu-list">
+                <li><a :class="{'is-active': selected == null}" @click="selected = null">All Vaccinations</a></li>
+            </ul>
+            <div v-for="phaseid in phaseOrderSidebar">
+                <p class="menu-label" style="margin-top: 10px">{{ phases[phaseid] }}</p>
+                <ul class="menu-list">
+                    <li v-for="vaccine in vaccinationsByPhase[phaseid]">
+                        <a style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap" :class="{'is-active': selected == vaccine.vaccinename}" @click="selected = vaccine.vaccinename">{{ vaccine.vaccinename }}</a>
+                    </li>
+                </ul>
+            </div>
+            
+        </aside>
+
+
+        <div class="column section" style="overflow-y: scroll; height: 95vh">
+            <div v-if="selected == null">
+                <b-tabs>
+                    <b-tab-item v-for="phaseid in phaseOrder" v-if="vaccinationsByPhase[phaseid]" :label="phases[phaseid] + ' (' + vaccinationsByPhase[phaseid].length + ')'">
+                        <h3 class="is-size-3" style="margin-bottom: 20px">Vaccinations in status: {{ phases[phaseid] }}</h3>
+                        <div class="columns is-multiline">
+                            <div class="column" v-for="vaccine in vaccinationsByPhase[phaseid]">
+                                <div class="card" style="width: 350px;">
+                                    <div class="card-content">
+                                        <div v-if="company in companies" class="is-size-6" v-for="company in vaccine.companyname.split(',')" style="float: right">
+                                            <img style="margin-left: 10px" :src="'https://www.countryflags.io/' + companies[company].companycountrycode + '/flat/32.png'" style="vertical-align: middle">                                        
+                                        </div>
+                    
+                                        <h3 class="is-size-4" style="margin-bottom: 10px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap">{{ vaccine.vaccinename }}</h3>
+                                        <p class="is-size-7" style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap">{{ vaccine.companyname }}</p>
+                                        <div class="menu-label">Progress</div>
+                                        <progress class="progress is-success" :value="vaccine.phase" max="7">15%</progress>
+                                        <div class="menu-label">Phase</div>
+                                        <p class="is-size-5">{{ phases[vaccine.phase] }}</p>
+
+                                    </div>
+                                    <div class="card-footer">
+                                        <a class="card-footer-item" @click="selected = vaccine.vaccinename">More Information</a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                    </b-tab-item>
+                </b-tabs>
+
+            </div>
+
+            <div v-for="vaccine in statusData" class="card" v-if="selected == vaccine.vaccinename">
+                <div class="card-content">
+
+                    <h1 class="is-size-4">{{ vaccine.vaccinename }}</h1>
+                    <div v-if="company in companies" class="is-size-6" v-for="company in vaccine.companyname.split(',')">
+                        <p>
+                            <img :src="'https://www.countryflags.io/' + companies[company].companycountrycode + '/flat/32.png'" style="vertical-align: middle">
+                            <a target="_blank" :href="companies[company].companylink">{{ company }} ({{ companies[company].companycountry }})</a>
+                        </p>
+                    </div>
+
+                    <h3 class="menu-label">Progress</h3>
+                    <progress class="progress is-success" :value="vaccine.phase" max="7">15%</progress>
+
+                    <div class="columns">
+                        <div class="column">
+                            <p>Pre-clinical research</p>
+                        </div>
+                        <div class="column">
+                            <p>Pre-clinical Trials</p>
+                        </div>
+                        <div class="column">
+                            <p><a v-if="vaccine.phase1link" :href="vaccine.phase1link" target="_blank">Phase 1 trial</a></p>
+                            <p v-if="!vaccine.phase1link">Phase 1 trial</p>
+                            <p>Start: {{ vaccine.p1start }}</p>
+                            <p>End: {{ vaccine.p1end }}</p>
+                        </div>
+                        <div class="column">
+                            <p><a v-if="vaccine.phase2link" :href="vaccine.phase2link" target="_blank">Phase 2 trial</a></p>
+                            <p v-if="!vaccine.phase2link">Phase 2 trial</p>
+                            <p>Start: {{ vaccine.p2start }}</p>
+                            <p>End: {{ vaccine.p2end }}</p>
+                        </div>
+                        <div class="column">
+                            <p><a v-if="vaccine.phase3link" :href="vaccine.phase3link" target="_blank">Phase 3 trial</a></p>
+                            <p v-if="!vaccine.phase3link">Phase 3 trial</p>
+                            <p>Start: {{ vaccine.p2start }}</p>
+                            <p>End: {{ vaccine.p2end }}</p>
+                        </div>
+                        <div class="column">
+                            <p>FDA Approved</p>
+                        </div>
+                        <div class="column">
+                            <p>Generally Available</p>
+                        </div>
+                    </div>
+
+                    <div class="columns">
+                        <div class="column">
+                            <h3 class="menu-label">Phase</h3>
+                            <p class="is-size-3">{{ phases[vaccine.phase] }}</p>
+                        </div>
+                        <div class="column">
+                            <h3 class="menu-label">Type</h3>
+                            <p class="is-size-3">{{ vaccine.vaccinetype }}</p>
+                        </div>
+                        <div class="column">
+                            <h3 class="menu-label">Candidates Enrolled</h3>
+                            <p class="is-size-3">{{ vaccine.currentlyenrolled }}</p>
+                        </div>                        
+                    </div>
+
+                    <h3 class="menu-label">Description</h3>
+                    <p>{{ vaccine.details }}</p>
+                    <h3 class="menu-label">Status</h3>
+                    <p>{{ vaccine.status }}</p>
+
+                    <h3 v-if="vaccine.articles" class="menu-label">More Information</h3>
+                    <a v-if="vaccine.articles" v-for="article in vaccine.articles.split('\n')" :href="article">{{ article }}</a>
+                </div>
+            </div>
+            <h3 v-if="selected" class="title is-size-3" style="margin-top: 30px">Latest News on {{ selected }}</h3>
+            <div v-if="selected" class="card" style="margin: 20px 0" v-for="item in news">
+                <div class="card-content">
+                    <div class="media">
+                        <div class="media-left">
+                          <figure class="image is-64x64">
+                            <img :src="item.urlToImage" :alt="item.title">
+                          </figure>
+                        </div>
+                        <div class="media-content">
+                          <p class="title is-4"><a :href="item.url">{{ item.title }}</a></p>
+                          <p class="subtitle is-6">{{ item.author }}</p>
+                          
+                        </div>
+                    </div>
+                    <div class="content">
+                        {{ item.description }}<br/><br/>
+                        <time datetime="{{ item.publishedAt }}">Published on {{ new Date(item.publishedAt).toLocaleString() }}</time>
+                    </div>                    
+
+                    <!-- <p>Source: {{ item.source.name }}</p> -->
+                    
+                </div>
+            </div>
+        </div>
+
+    </div>  
+
+    </div>
+    <script>
+        let sheetID = "1qRN1CTiEBqQkxfOUI8_wYfXiWxoVjHKiwruslmfOqSs";
+
+        async function gsx(id, sheet) {
+            url = 'https://spreadsheets.google.com/feeds/list/' + id + '/' + sheet + '/public/values?alt=json';
+
+            response = await fetch(url);
+
+            if( response.status != 200) {
+                return;
+            }
+
+            var data = await response.json();
+            var responseObj = {};
+            var rows = [];
+            var columns = {};
+
+            for (var i = 0; i < data.feed.entry.length; i++) {
+                var entry = data.feed.entry[i];
+                var keys = Object.keys(entry);
+                var newRow = {};
+                var queried = false;
+                for (var j = 0; j < keys.length; j++) {
+                    var gsxCheck = keys[j].indexOf('gsx$');
+                    if (gsxCheck > -1) {
+                    var key = keys[j];
+                    var name = key.substring(4);
+                    var content = entry[key];
+                    var value = content.$t;
+                    newRow[name] = value;
+                    if (!columns.hasOwnProperty(name)) {
+                        columns[name] = [];
+                        columns[name].push(value);
+                    } else {
+                        columns[name].push(value);
+                    }
+                    }
+                }
+                rows.push(newRow);
+                }
+            return rows;
+        }
+
+        async function getData() {
+            return await gsx(sheetID, 1);
+        }
+
+        async function getCompanies() {
+            let companies = await gsx(sheetID, 3);
+            companyDict = {};
+            companies.forEach(company => {
+                companyDict[company.companyname] = company;
+            })
+            return companyDict;
+        }        
+
+        new Vue({
+            el: '#app',
+            data: {
+                vaccinationsByPhase: {},
+                companies: {},
+                companiesByPhase: [],
+                news: [],
+                phases: {
+                    8: "All Vaccines",
+                    7: "Generally Available",
+                    6: "FDA Approved",
+                    5: "Phase 3 trial",
+                    4: "Phase 2 trial",
+                    3: "Phase 1 trial",
+                    2: "Pre-clinical trials",
+                    1: "Pre-clinical research",
+                },
+                phaseOrder: [8,7,6,5,4,3,2,1],
+                phaseOrderSidebar: [7,6,5,4,3,2,1],
+                selected: null,
+                statusData: []
+            },
+            async mounted() {
+
+                this.statusData = await getData();
+                this.companies = await getCompanies();
+                let phases = Object.keys(this.phases);
+                let vaccinationsByPhase = {}
+
+                phases.forEach(phase => {
+                    if (phase == 8) {
+                        vaccinationsByPhase[phase] = this.statusData;
+                    } else {
+                        vaccinationsByPhase[phase] = this.statusData.filter(x => x.phase == phase);
+
+                    }
+                })
+                this.vaccinationsByPhase = vaccinationsByPhase;
+            },
+            watch: {
+                async selected() {
+                    let query = this.selected;
+                    let res = await fetch(`https://newsapi.org/v2/everything?q=${query}&sortBy=publishedAt&language=en&apiKey=248c68214857474fbb7556c917ad586f`);
+                    this.news = (await res.json())['articles'];
+
+                }
+            }
+        })
+    </script>
+</body>
+
+</html>
